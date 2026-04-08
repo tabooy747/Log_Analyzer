@@ -1,0 +1,10 @@
+BRUTE_FORCE_THRESHOLD = 10
+TIME_WINDOW_SECONDS = 60
+
+SENSITIVE_ENDPOINTS = [
+    "/login",
+    "/admin",
+    "/dashboard"
+]
+
+ANOMALY_REQUEST_THRESHOLD = 50
