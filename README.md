@@ -25,11 +25,11 @@ Log_Analyzer/
 ├── report.py            # Writes output/report.json and creates the directory if needed
 ├── sample_logs/
 │   └── access.log       # Synthetic log read by analyzer.py
-├── output/
-│   └── .gitkeep         # Keeps the output directory in git
-├── .gitignore
+├── .gitignore           # Ignores output/ along with Python caches
 └── README.md
 ```
+
+`output/` holds the generated `report.json`. The directory is created on the first run and ignored by git.
 
 ## How to run
 
