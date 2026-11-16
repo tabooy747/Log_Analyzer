@@ -1,172 +1,113 @@
-# 🔐 Log Analysis & Threat Detection Tool (In Progress)
+# Log Analyzer
 
-A Python-based cybersecurity tool designed to analyze server logs and detect suspicious activity, including brute-force login attempts, unauthorized access, and anomalous traffic patterns.
+A small Python 3 learning project that reads a web access log and writes a JSON report of threshold-based detections.
 
----
+## What it detects
 
-## 📌 Overview
+The rules and cutoffs are set in `config.py`.
 
-This project simulates core functionality of a Security Information and Event Management (SIEM) system by processing log data and identifying potential security threats. It is being developed to demonstrate practical skills in cybersecurity analysis, threat detection, and Python programming.
+| Detection | Rule |
+| --- | --- |
+| Brute force | 10 or more HTTP 401 responses in any 60-second window |
+| Unauthorized access | HTTP 403 whose path is exactly `/login`, `/admin`, or `/dashboard` |
+| Traffic anomaly | More than 50 requests from one IP in the file |
 
----
+`BRUTE_FORCE_THRESHOLD` is 10 and `TIME_WINDOW_SECONDS` is 60. `ANOMALY_REQUEST_THRESHOLD` is 50, and the comparison is strict (`count > 50`), so a finding requires 51 or more requests.
 
-## 🚨 Features
-
-* **Brute-Force Detection**
-
-  * Identifies repeated failed login attempts within a defined time window
-
-* **Unauthorized Access Detection**
-
-  * Flags access attempts to sensitive endpoints (e.g., `/admin`, `/login`) with forbidden responses
-
-* **Traffic Anomaly Detection**
-
-  * Detects abnormal request volumes from individual IP addresses
-
-* **Structured Reporting**
-
-  * Outputs findings in JSON format for further analysis or integration
-
----
-
-## 🧠 Detection Techniques
-
-* Time-window-based analysis for login attempts
-* Endpoint sensitivity monitoring
-* IP behavior profiling
-* Threshold-based anomaly detection
-
----
-
-## 🏗️ Project Structure
+## Project structure
 
 ```
-log-analyzer/
-│── analyzer.py          # Main execution script
-│── parser.py            # Log parsing and timestamp extraction
-│── detector.py          # Threat detection logic
-│── config.py            # Configurable thresholds and settings
-│── report.py            # JSON report generation
-│── utils.py             # Helper functions (future use)
-│── sample_logs/         # Sample log files for testing
-│── output/              # Generated reports
-│── README.md
+Log_Analyzer/
+├── analyzer.py          # Reads the sample log, runs the checks, prints and saves the report
+├── parser.py            # Parses combined-style access log lines
+├── detector.py          # Brute-force, unauthorized-access, and volume checks
+├── config.py            # Thresholds and sensitive endpoints
+├── report.py            # Writes output/report.json and creates the directory if needed
+├── sample_logs/
+│   └── access.log       # Synthetic log read by analyzer.py
+├── .gitignore           # Ignores output/ along with Python caches
+└── README.md
 ```
 
----
+`output/` holds the generated `report.json`. The directory is created on the first run and ignored by git.
 
-## ⚙️ Installation
+## How to run
 
-1. Clone the repository:
+Python 3 standard library only. Nothing to install.
 
 ```bash
-git clone https://github.com/yourusername/log-analyzer.git
-cd log-analyzer
+git clone https://github.com/tabooy747/Log_Analyzer.git
+cd Log_Analyzer
+python3 analyzer.py
 ```
 
-2. (Optional) Create a virtual environment:
+On systems where the Python 3 command is `python`, run `python analyzer.py`.
 
-```bash
-python -m venv venv
-source venv/bin/activate   # Linux/Mac
-venv\Scripts\activate      # Windows
-```
+The script reads `sample_logs/access.log`, prints the findings, and writes the same data to `output/report.json`. `report.py` creates `output/` when that directory is missing.
 
-3. Install dependencies:
+The sample log is synthetic. Client addresses use the documentation ranges in RFC 5737: `192.0.2.0/24`, `198.51.100.0/24`, and `203.0.113.0/24`. It includes:
 
-```bash
-pip install -r requirements.txt
-```
+- 10 failed logins (`401`) from `203.0.113.10` within nine seconds
+- one `403` each for `/admin`, `/dashboard`, and `/login`
+- 51 requests from `198.51.100.20`
+- three lines that stay under the rules: one isolated `401`, a `200` on `/admin`, and a `403` on `/reports`
 
----
-
-## ▶️ Usage
-
-Run the analyzer:
-
-```bash
-python analyzer.py
-```
-
-Output will be displayed in the console and saved to:
+The log path is hardcoded in `analyzer.py`. Change `sample_logs/access.log` there to read another file in the same shape. Each data line looks like this (English month abbreviation, no timezone):
 
 ```
-output/report.json
+203.0.113.10 - - [16/Nov/2026:10:00:00] "POST /login HTTP/1.1" 401 512
 ```
 
----
+## Sample output
 
-## 📄 Example Output
+`output/report.json` from the included log:
 
 ```json
 {
     "brute_force": [
         {
             "type": "Brute Force",
-            "ip": "192.168.1.1",
-            "attempts": 15,
-            "time_window": "2026-04-07 10:00:00"
+            "ip": "203.0.113.10",
+            "attempts": 10,
+            "time_window": "2026-11-16 10:00:00"
         }
     ],
-    "unauthorized_access": [],
+    "unauthorized_access": [
+        {
+            "type": "Unauthorized Access",
+            "ip": "192.0.2.15",
+            "endpoint": "/admin",
+            "time": "2026-11-16 10:02:00"
+        },
+        {
+            "type": "Unauthorized Access",
+            "ip": "192.0.2.15",
+            "endpoint": "/dashboard",
+            "time": "2026-11-16 10:02:01"
+        },
+        {
+            "type": "Unauthorized Access",
+            "ip": "192.0.2.25",
+            "endpoint": "/login",
+            "time": "2026-11-16 10:02:02"
+        }
+    ],
     "anomalies": [
         {
             "type": "Traffic Anomaly",
-            "ip": "192.168.1.2",
-            "requests": 120
+            "ip": "198.51.100.20",
+            "requests": 51
         }
     ]
 }
 ```
 
----
+## Limitations
 
-## 🛠️ Technologies Used
+This is a learning project for offline log files.
 
-* Python 3
-* Regular Expressions (`re`)
-* JSON for reporting
-* Datetime for time-based analysis
-
----
-
-## 🎯 Project Goals
-
-* Simulate real-world log analysis workflows used in SOC environments
-* Build a foundation for a lightweight SIEM system
-* Demonstrate threat detection and data analysis skills
-
----
-
-## 🚀 Future Enhancements
-
-* Real-time log monitoring (live tailing)
-* Web-based dashboard (Flask or React)
-* IP geolocation and threat intelligence integration
-* Machine learning-based anomaly detection
-* Alerting system (email, webhook, etc.)
-
----
-
-## 📌 Resume Description
-
-**Log Analysis & Threat Detection Tool (In Progress)**
-
-* Developing a Python-based tool to analyze logs and detect suspicious activity
-* Implemented brute-force detection using time-windowed failed login analysis
-* Identifies unauthorized access attempts and abnormal traffic patterns
-* Designed modular architecture for scalability and future SIEM integration
-
----
-
-## ⚠️ Disclaimer
-
-This tool is intended for educational and defensive cybersecurity purposes only. Use responsibly and only on systems you own or have permission to analyze.
-
----
-
-## 👤 Author
-
-Douglas Marsh
-Cybersecurity Enthusiast | Aspiring Security Analyst
+- Brute force counts every `401` in the 60-second window and labels the finding with the IP of the first `401` in that window. A burst larger than 10 can produce several findings, because each starting line looks forward one window.
+- Unauthorized access keeps a row only when the status is `403` and the path is exactly `/login`, `/admin`, or `/dashboard`.
+- A traffic anomaly is the total number of requests from one IP across the whole file. The count has no time window of its own.
+- The parser accepts one timestamp shape, `dd/Mon/YYYY:HH:MM:SS`, with an English month abbreviation and no timezone.
+- Useful next steps are a command-line log path, grouping brute-force findings by source IP, and collapsing overlapping windows into a single finding.
